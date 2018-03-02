@@ -53,7 +53,6 @@ public class AsyncCacheRequestManager {
   // added by Bin
   private AtomicLong mNum = new AtomicLong(0);
   // added by Bin
-  private static AtomicLong mNumTotal = new AtomicLong(0);
 
   /**
    * @param service thread pool to run the background caching work
@@ -64,9 +63,6 @@ public class AsyncCacheRequestManager {
     mBlockWorker = blockWorker;
     mPendingRequests = new ConcurrentHashMap<>();
     mLocalWorkerHostname = NetworkAddressUtils.getLocalHostName();
-    // added by Bin
-    LOG.info("new acrm: {}", ThreadUtils.formatStackTrace(Thread.currentThread()));
-    // added by Bin, end
   }
 
   /**
@@ -79,8 +75,8 @@ public class AsyncCacheRequestManager {
     long blockId = request.getBlockId();
     long blockLength = request.getLength();
     // Added by Bin
-    LOG.info("blockID {}, len {}, current size {}, {},{}",
-        blockId, blockLength, mPendingRequests.size(), this, ((Object) mNum));
+    LOG.info("blockID {}, len {}, current size {}, {}", blockId, blockLength,
+        mPendingRequests.size(), mNum);
     // Added by Bin end
     if (mPendingRequests.putIfAbsent(blockId, request) != null) {
       // This block is already planned.
@@ -113,9 +109,8 @@ public class AsyncCacheRequestManager {
               cacheBlockFromRemoteWorker(blockId, blockLength, sourceAddress, openUfsBlockOptions);
         }
         long endMs = System.currentTimeMillis();
-        LOG.info("Result of async caching block {} ({}, {}, {} ms, {}): {}",
-            blockId, mNum.getAndIncrement(), mNumTotal.getAndIncrement(), endMs - startMs,
-            this, result);
+        LOG.info("Result of async caching block {} ({}, {} MB/s): {}",
+            blockId, mNum.getAndIncrement(), blockLength / 1000.0 / (endMs - startMs), result);
         mPendingRequests.remove(blockId);
       });
     } catch (Exception e) {
